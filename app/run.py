@@ -37,25 +37,62 @@ model = joblib.load("../models/classifier.pkl")
 @app.route('/')
 @app.route('/index')
 def index():
-    
+
     # extract data needed for visuals
-    # TODO: Below is an example - modify to extract data for your own visuals
-    genre_counts = df.groupby('genre').count()['message']
-    genre_names = list(genre_counts.index)
+    # fetching only categories
+    only_categories_from_df = df.drop(['id','message','original','genre'], axis=1).sum().sort_values(ascending=False)
+    categories_names = list(only_categories_from_df.index)
+    # Plotting genre distribution
+    genre_distribution = df.groupby("genre")["message"].count()
+    genre_names = list(genre_distribution.index)
     
-    # create visuals
-    # TODO: Below is an example - modify to create your own visuals
+    # plotting Grouped bar chart for all 3 genres
+    news_df = df[df['genre']=='news']
+    news_df_distribution = news_df.drop(['id','message','original','genre'], axis=1).sum().sort_values(ascending=False)
+    news_df_names = list(news_df_distribution.index)
+    
+    direct_df = df[df['genre']=='direct']
+    direct_df_distribution = direct_df.drop(['id','message','original','genre'], axis=1).sum().sort_values(ascending=False)
+    direct_df_names = list(direct_df_distribution.index)
+    
+    social_df = df[df['genre']=='social']
+    social_df_distribution = social_df.drop(['id','message','original','genre'], axis=1).sum().sort_values(ascending=False)
+    social_df_names = list(social_df_distribution.index)
+
     graphs = [
         {
             'data': [
                 Bar(
-                    x=genre_names,
-                    y=genre_counts
+                    name="News",
+                    x=news_df_names,
+                    y=news_df_distribution
+                ),
+                Bar(
+                    name="Social",
+                    x=social_df_names,
+                    y=social_df_distribution
+                ),
+                Bar(
+                    name="Direct",
+                    x=direct_df_names,
+                    y=direct_df_distribution
                 )
             ],
 
             'layout': {
-                'title': 'Distribution of Message Genres',
+                'title': 'Count of Genres w.r.t. each Category',
+            }
+        },
+        {
+            'data': [
+                Bar(
+                    x=genre_names,
+                    y=genre_distribution
+                )
+            ],
+
+            'layout': {
+                'title': 'Distribution of genres',
                 'yaxis': {
                     'title': "Count"
                 },

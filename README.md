@@ -33,3 +33,6 @@
 
 
 ![alt text](https://github.com/Hariss096/disaster-response-ml/blob/master/resources/Distribution%20of%20genres.png)
+
+
+![alt text](https://github.com/Hariss096/disaster-response-ml/blob/master/resources/most%20frequent%20words.png)

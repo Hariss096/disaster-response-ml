@@ -13,10 +13,15 @@ from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report
+from sklearn.grid_search import GridSearchCV
 import pickle
 
 def load_data(database_filepath):
-    # load data from database
+    """
+    Input: Database file path as string
+    Reads the table within db that contains output of ETL pipeline
+    Returns: Messages, Categories and their names
+    """
     engine = create_engine(f'sqlite:///{database_filepath}')
     df = pd.read_sql_query("SELECT * FROM transformed_data", engine)
     X = df.message.values
@@ -24,7 +29,11 @@ def load_data(database_filepath):
     return X, y, y.columns
 
 def tokenize(text):
-    # Normalize
+    """
+    Input: Text message as string
+    Returns: Normalized, Tokenized, Lemmatized text
+    """
+    # Normalizing
     text = text.lower()
     # tokenizing
     tokenized = nltk.word_tokenize(text)
@@ -38,6 +47,9 @@ def tokenize(text):
 
 
 def build_model():
+    """
+    Returns: ML pipeline
+    """
     pipeline = Pipeline([
         ('cvect', CountVectorizer(tokenizer=tokenize)),
         ('tfidf', TfidfTransformer()),
@@ -47,17 +59,29 @@ def build_model():
 
 
 def evaluate_model(model, X_test, Y_test, category_names):
+    """
+    Inputs: pre-built model, test set features and labels, category names
+    Prints classification report for each category
+    """
     y_pred = model.predict(X_test)
     for i in range(len(category_names)):
         print(classification_report(Y_test.iloc[i].values, y_pred[i]))
 
 
 def save_model(model, model_filepath):
+    """
+    Inputs: pre-built model, file path as string where model should be saved
+    Saves model to the desired filepath
+    """
     output = open(model_filepath, 'wb')
     pickle.dump(model, output)
 
 
 def main():
+    """
+    Runs ML pipeline: Loads data from database, builds model, trains model, evaluate and then
+    Save it as pickle file
+    """
     if len(sys.argv) == 3:
         database_filepath, model_filepath = sys.argv[1:]
         print('Loading data...\n    DATABASE: {}'.format(database_filepath))
@@ -68,13 +92,19 @@ def main():
         model = build_model()
         
         print('Training model...')
-        model.fit(X_train, Y_train)
-        
+        parameters = {
+        'cvect__ngram_range': ((1, 1), (1, 2)),
+        'tfidf__use_idf': (True, False),
+        'clf__estimator__n_estimators': [1, 10],
+        }
+        cv = GridSearchCV(model, param_grid=parameters)
+        cv.fit(X_train, Y_train)
+
         print('Evaluating model...')
-        evaluate_model(model, X_test, Y_test, category_names)
+        evaluate_model(cv, X_test, Y_test, category_names)
 
         print('Saving model...\n    MODEL: {}'.format(model_filepath))
-        save_model(model, model_filepath)
+        save_model(cv, model_filepath)
 
         print('Trained model saved!')
 
